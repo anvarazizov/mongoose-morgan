@@ -11,6 +11,7 @@ let logSchema;
  * @param  {object} mongoData - represents mongo database data, requires { connectionString : '{MONGO_URL}' } parameter.
  * @param  {object} options - represents morgan options, check their github, default value is empty object {}.
  * @param  {string} format - represents morgan formatting, check their github, default value is 'combined'.
+ * @param  {string} user - represents user credential from passport
  */
 function MongooseMorgan(mongoData, options, format) {
     // Filter the arguments
@@ -57,7 +58,13 @@ function MongooseMorgan(mongoData, options, format) {
                 type: Date,
                 default: Date.now
             },
-            log: String
+            method: String,
+            path: String,
+            protocol: String,
+            statusCode: String,
+            bytes: String,
+            url: String,
+            userAgent: String
         }, capped ? {
             capped: {
                 size: cappedSize,
@@ -72,7 +79,35 @@ function MongooseMorgan(mongoData, options, format) {
     function onLine(line) {
         console.log(line);
         var logModel = new Log();
-        logModel.log = line;
+        var rePattern = new RegExp(/^([^ ]+) ([^ ]+) ([^ ]+) (\[[^\]]+\]) "(.*) (.*) (.*)" ([0-9\-]+) ([0-9\-]+) "(.*)" "(.*)"$/);
+        var match;
+        if (match = line.match(rePattern)) {
+            match.forEach(function(element, index) {
+                switch (index) {
+                    case 5:
+                        logModel.method = element;
+                    break;
+                    case 6:
+                        logModel.path = element;
+                    break;
+                    case 7:
+                        logModel.protocol = element;
+                    break;
+                    case 8:
+                        logModel.statusCode = element;
+                    break;
+                    case 9:
+                        logModel.bytes = element;
+                    break;
+                    case 10:
+                        logModel.url = element;
+                    break;
+                    case 11:
+                        logModel.userAgent = element;
+                    break;
+                } 
+            });
+        }
 
         logModel.save(function (err) {
             if (err) {
